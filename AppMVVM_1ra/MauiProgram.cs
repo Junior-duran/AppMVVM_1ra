@@ -1,3 +1,8 @@
+﻿using AppMVVM_1ra;
+using CatalogoApp.Repositories;
+using CatalogoApp.ViewModels;
+using CatalogoApp.Views;
+using CommunityToolkit.Maui; // Necesario para el toolkit (convertidores de UI)
 ﻿using Microsoft.Extensions.Logging;
 
 namespace AppMVVM_1ra
