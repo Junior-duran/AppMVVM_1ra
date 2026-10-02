@@ -1,0 +1,98 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:CatalogoApp.ViewModels"
+             xmlns:models="clr-namespace:CatalogoApp.Models"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="CatalogoApp.Views.CartPage"
+             x:DataType="viewmodels:CartViewModel"
+             Title="Mi Carrito">
+
+    <ContentPage.Resources>
+        <!-- Inversor para ocultar la barra inferior si IsEmpty es true -->
+        <toolkit:InvertedBoolConverter x:Key="InvertedBoolConverter" />
+    </ContentPage.Resources>
+
+    <Grid RowDefinitions="*, Auto">
+
+        <!-- Lista de productos en el carrito -->
+        <CollectionView Grid.Row="0" 
+                        ItemsSource="{Binding CartItems}"
+                        SelectionMode="None">
+
+            <!-- Estado automático si la lista no tiene elementos -->
+            <CollectionView.EmptyView>
+                <VerticalStackLayout HorizontalOptions="Center" VerticalOptions="Center" Spacing="15">
+                    <Label Text="🛒" FontSize="64" HorizontalOptions="Center" />
+                    <Label Text="Tu carrito está vacío" FontSize="20" TextColor="Gray" />
+                </VerticalStackLayout>
+            </CollectionView.EmptyView>
+
+            <!-- Diseño de cada ítem -->
+            <CollectionView.ItemTemplate>
+                <DataTemplate x:DataType="models:CartItem">
+                    <Frame Margin="10,5" Padding="10" CornerRadius="8" HasShadow="True">
+                        <Grid ColumnDefinitions="80, *, 40" ColumnSpacing="15">
+
+                            <!-- Imagen del producto hidratado -->
+                            <Image Grid.Column="0" 
+                                   Source="{Binding ProductInfo.ImageUrl}" 
+                                   HeightRequest="80" WidthRequest="80" 
+                                   Aspect="AspectFit" />
+
+                            <!-- Información y precios -->
+                            <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                <Label Text="{Binding ProductInfo.Title}" 
+                                       FontAttributes="Bold" FontSize="14" MaxLines="2" />
+
+                                <HorizontalStackLayout Spacing="10" Margin="0,5,0,0">
+                                    <Label Text="{Binding Quantity, StringFormat='Cant: {0}'}" 
+                                           TextColor="Gray" />
+                                    <Label Text="{Binding Subtotal, StringFormat='Subtotal: ${0:F2}'}" 
+                                           TextColor="DarkGreen" FontAttributes="Bold" />
+                                </HorizontalStackLayout>
+                            </VerticalStackLayout>
+
+                            <!-- Botón Eliminar: Busca el comando en el ViewModel, no en el CartItem -->
+                            <ImageButton Grid.Column="2"
+                                         Source="trash_icon.png"
+                                         HeightRequest="24" WidthRequest="24"
+                                         VerticalOptions="Center"
+                                         Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:CartViewModel}}, Path=RemoveItemCommand}"
+                                         CommandParameter="{Binding .}" />
+                        </Grid>
+                    </Frame>
+                </DataTemplate>
+            </CollectionView.ItemTemplate>
+
+        </CollectionView>
+
+        <!-- Indicador de Carga (Superpuesto en el Grid) -->
+        <ActivityIndicator Grid.Row="0" 
+                           IsRunning="{Binding IsBusy}" 
+                           IsVisible="{Binding IsBusy}"
+                           HorizontalOptions="Center" 
+                           VerticalOptions="Center" 
+                           Color="Blue" />
+
+        <!-- Barra inferior de totales y vaciar carrito (Se oculta si está vacío) -->
+        <Border Grid.Row="1" 
+                Padding="20" 
+                IsVisible="{Binding IsEmpty, Converter={StaticResource InvertedBoolConverter}}"
+                BackgroundColor="{AppThemeBinding Light=White, Dark=#1E1E1E}">
+
+            <Grid ColumnDefinitions="*, Auto" RowDefinitions="Auto, Auto" RowSpacing="15">
+                <Label Grid.Row="0" Grid.Column="0" Text="Total a Pagar:" FontSize="16" />
+                <Label Grid.Row="0" Grid.Column="1" 
+                       Text="{Binding TotalAmount, StringFormat='${0:F2}'}" 
+                       FontSize="22" FontAttributes="Bold" TextColor="DarkGreen" />
+
+                <Button Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="2" 
+                        Text="Vaciar Carrito" 
+                        Command="{Binding ClearCartCommand}" 
+                        BackgroundColor="DarkRed" TextColor="White" CornerRadius="8" />
+            </Grid>
+        </Border>
+
+    </Grid>
+</ContentPage>

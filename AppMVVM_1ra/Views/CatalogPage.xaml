@@ -1,0 +1,81 @@
+﻿using Java.Lang;
+using static Android.Icu.Text.CaseMap;
+using static Android.Print.PrintAttributes;
+
+<? xml version = "1.0" encoding = "utf-8" ?>
+< ContentPage xmlns = "http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns: x = "http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns: viewmodels = "clr-namespace:CatalogoApp.ViewModels"
+             xmlns: models = "clr-namespace:CatalogoApp.Models"
+             x: Class = "CatalogoApp.Views.CatalogPage"
+             x: DataType = "viewmodels:CatalogViewModel"
+             Title = "Catálogo de Productos" >
+
+    < !--Un Grid nos permite encimar la rueda de carga sobre la lista -->
+    <Grid>
+        
+        <!-- Mensaje de Error: Solo se muestra si ErrorMessage tiene texto -->
+        <Label Text="{Binding ErrorMessage}"
+               IsVisible="{Binding ErrorMessage, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"
+               TextColor="Red"
+               HorizontalOptions="Center"
+               VerticalOptions="Center"
+               Margin="20" />
+
+        <!-- Lista de Productos con "Pull to Refresh" (Tirar para actualizar) -->
+        <RefreshView IsRefreshing="{Binding IsBusy}"
+                     Command="{Binding LoadProductsCommand}">
+            
+            <CollectionView ItemsSource="{Binding Products}"
+                            SelectionMode="None">
+                
+                <!-- Diseño de cada tarjeta de producto -->
+                <CollectionView.ItemTemplate>
+                    <DataTemplate x:DataType = "models:Product" >
+                        < Frame Margin = "10,5" Padding = "10" CornerRadius = "8" HasShadow = "True" >
+                            < Grid ColumnDefinitions = "100, *" ColumnSpacing = "15" >
+
+
+                                < !--Imagen del producto -->
+                                <Image Grid.Column="0"
+                                       Source="{Binding ImageUrl}"
+                                       HeightRequest="100"
+                                       WidthRequest="100"
+                                       Aspect="AspectFit" />
+                                
+                                <!-- Detalles del producto -->
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
+                                    <Label Text="{Binding Title}" 
+                                           FontAttributes="Bold" 
+                                           FontSize="16" 
+                                           MaxLines="2" 
+                                           LineBreakMode="TailTruncation"/>
+                                    
+                                    <Label Text="{Binding Category}" 
+                                           TextColor="Gray" 
+                                           FontSize="12" 
+                                           Margin="0,5,0,0"/>
+                                    
+                                    <Label Text="{Binding DisplayPrice}" 
+                                           TextColor="DarkGreen" 
+                                           FontAttributes="Bold" 
+                                           FontSize="18" 
+                                           Margin="0,10,0,0"/>
+                                </VerticalStackLayout>
+                            </Grid>
+                        </Frame>
+                    </DataTemplate>
+                </CollectionView.ItemTemplate>
+                
+            </CollectionView>
+        </RefreshView>
+
+        <!-- Indicador de Carga inicial central -->
+        <ActivityIndicator IsRunning="{Binding IsBusy}"
+                           IsVisible="{Binding IsBusy}"
+                           HorizontalOptions="Center"
+                           VerticalOptions="Center"
+                           Color="Blue" />
+    </Grid>
+
+</ContentPage>

@@ -1,3 +1,5 @@
 <Solution>
-  <Project Path="AppMVVM_1ra/AppMVVM_1ra.csproj" />
+  <Project Path="AppMVVM_1ra/AppMVVM_1ra.csproj">
+    <Deploy Solution="Debug|*" />
+  </Project>
 </Solution>
