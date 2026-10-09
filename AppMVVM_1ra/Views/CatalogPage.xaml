@@ -1,81 +1,88 @@
-﻿using Java.Lang;
-using static Android.Icu.Text.CaseMap;
-using static Android.Print.PrintAttributes;
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<ContentPage xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
+             xmlns:viewmodels="clr-namespace:AppMVVM_1ra.ViewModels"
+             xmlns:models="clr-namespace:AppMVVM_1ra.Models"
+             xmlns:toolkit="http://schemas.microsoft.com/dotnet/2022/maui/toolkit"
+             x:Class="AppMVVM_1ra.Views.CatalogPage"
+             x:DataType="viewmodels:CatalogViewModel"
+             Title="Catálogo"
+             BackgroundColor="#F5F7FA">
 
-<? xml version = "1.0" encoding = "utf-8" ?>
-< ContentPage xmlns = "http://schemas.microsoft.com/dotnet/2021/maui"
-             xmlns: x = "http://schemas.microsoft.com/winfx/2009/xaml"
-             xmlns: viewmodels = "clr-namespace:CatalogoApp.ViewModels"
-             xmlns: models = "clr-namespace:CatalogoApp.Models"
-             x: Class = "CatalogoApp.Views.CatalogPage"
-             x: DataType = "viewmodels:CatalogViewModel"
-             Title = "Catálogo de Productos" >
-
-    < !--Un Grid nos permite encimar la rueda de carga sobre la lista -->
     <Grid>
-        
-        <!-- Mensaje de Error: Solo se muestra si ErrorMessage tiene texto -->
-        <Label Text="{Binding ErrorMessage}"
-               IsVisible="{Binding ErrorMessage, Converter={toolkit:IsStringNotNullOrEmptyConverter}}"
-               TextColor="Red"
-               HorizontalOptions="Center"
-               VerticalOptions="Center"
-               Margin="20" />
+        <Label Text="{Binding ErrorMessage}" 
+               IsVisible="{Binding ErrorMessage, Converter={toolkit:IsStringNotNullOrEmptyConverter}}" 
+               TextColor="#FF3B30" HorizontalOptions="Center" VerticalOptions="Center" Margin="20" />
 
-        <!-- Lista de Productos con "Pull to Refresh" (Tirar para actualizar) -->
-        <RefreshView IsRefreshing="{Binding IsBusy}"
-                     Command="{Binding LoadProductsCommand}">
-            
-            <CollectionView ItemsSource="{Binding Products}"
-                            SelectionMode="None">
-                
-                <!-- Diseño de cada tarjeta de producto -->
+        <RefreshView IsRefreshing="{Binding IsBusy}" Command="{Binding LoadProductsCommand}">
+            <CollectionView ItemsSource="{Binding Products}" SelectionMode="None">
                 <CollectionView.ItemTemplate>
-                    <DataTemplate x:DataType = "models:Product" >
-                        < Frame Margin = "10,5" Padding = "10" CornerRadius = "8" HasShadow = "True" >
-                            < Grid ColumnDefinitions = "100, *" ColumnSpacing = "15" >
+                    <DataTemplate x:DataType="models:Product">
 
+                        <Border Margin="15,8" Padding="15" StrokeThickness="0" BackgroundColor="White">
+                            <Border.StrokeShape>
+                                <RoundRectangle CornerRadius="12" />
+                            </Border.StrokeShape>
+                            <Border.Shadow>
+                                <Shadow Brush="#000000" Offset="0,4" Opacity="0.05" Radius="10" />
+                            </Border.Shadow>
 
-                                < !--Imagen del producto -->
-                                <Image Grid.Column="0"
-                                       Source="{Binding ImageUrl}"
-                                       HeightRequest="100"
-                                       WidthRequest="100"
-                                       Aspect="AspectFit" />
-                                
-                                <!-- Detalles del producto -->
-                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center">
-                                    <Label Text="{Binding Title}" 
-                                           FontAttributes="Bold" 
-                                           FontSize="16" 
-                                           MaxLines="2" 
-                                           LineBreakMode="TailTruncation"/>
-                                    
-                                    <Label Text="{Binding Category}" 
-                                           TextColor="Gray" 
-                                           FontSize="12" 
-                                           Margin="0,5,0,0"/>
-                                    
-                                    <Label Text="{Binding DisplayPrice}" 
-                                           TextColor="DarkGreen" 
-                                           FontAttributes="Bold" 
-                                           FontSize="18" 
-                                           Margin="0,10,0,0"/>
+                            <!-- El gesto para ir a los detalles -->
+                            <Border.GestureRecognizers>
+                                <TapGestureRecognizer Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:CatalogViewModel}}, Path=GoToProductDetailsCommand}" CommandParameter="{Binding .}" />
+                            </Border.GestureRecognizers>
+
+                            <Grid ColumnDefinitions="100, *" ColumnSpacing="15">
+                                <Image Grid.Column="0" Source="{Binding ImageUrl}" HeightRequest="100" WidthRequest="100" Aspect="AspectFit" />
+
+                                <VerticalStackLayout Grid.Column="1" VerticalOptions="Center" Spacing="4">
+                                    <Label Text="{Binding Title}" FontAttributes="Bold" FontSize="15" TextColor="#333333" MaxLines="2" LineBreakMode="TailTruncation"/>
+                                    <Label Text="{Binding Category}" TextColor="#888888" FontSize="12" TextTransform="Uppercase"/>
+                                    <Label Text="{Binding DisplayPrice}" TextColor="#0056D2" FontAttributes="Bold" FontSize="18" Margin="0,5,0,0"/>
+
+                                    <Button Text="Agregar" 
+                                            Margin="0,8,0,0" 
+                                            BackgroundColor="#EDF2F7" 
+                                            TextColor="#0056D2" 
+                                            FontAttributes="Bold"
+                                            CornerRadius="8" 
+                                            HeightRequest="40"
+                                            Command="{Binding Source={RelativeSource AncestorType={x:Type viewmodels:CatalogViewModel}}, Path=AddToCartCommand}" 
+                                            CommandParameter="{Binding .}" />
                                 </VerticalStackLayout>
                             </Grid>
-                        </Frame>
+                        </Border>
                     </DataTemplate>
                 </CollectionView.ItemTemplate>
-                
             </CollectionView>
         </RefreshView>
 
-        <!-- Indicador de Carga inicial central -->
-        <ActivityIndicator IsRunning="{Binding IsBusy}"
-                           IsVisible="{Binding IsBusy}"
-                           HorizontalOptions="Center"
-                           VerticalOptions="Center"
-                           Color="Blue" />
-    </Grid>
+        <!-- Botón flotante actualizado a Border en lugar de Frame -->
+        <Border HeightRequest="60"
+                WidthRequest="60"
+                BackgroundColor="#0056D2"
+                HorizontalOptions="End"
+                VerticalOptions="End"
+                Margin="0,0,20,30"
+                Padding="0"
+                StrokeThickness="0">
+            <Border.StrokeShape>
+                <RoundRectangle CornerRadius="30" />
+            </Border.StrokeShape>
+            <Border.Shadow>
+                <Shadow Brush="#000000" Offset="0,4" Opacity="0.3" Radius="10" />
+            </Border.Shadow>
 
+            <Border.GestureRecognizers>
+                <TapGestureRecognizer Command="{Binding GoToCartCommand}" />
+            </Border.GestureRecognizers>
+
+            <Label Text="🛒" 
+                   FontSize="24"
+                   HorizontalOptions="Center" 
+                   VerticalOptions="Center" />
+        </Border>
+
+        <ActivityIndicator IsRunning="{Binding IsBusy}" IsVisible="{Binding IsBusy}" HorizontalOptions="Center" VerticalOptions="Center" Color="#0056D2" />
+    </Grid>
 </ContentPage>

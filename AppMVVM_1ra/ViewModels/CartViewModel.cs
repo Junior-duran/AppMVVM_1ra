@@ -1,68 +1,64 @@
-﻿using AppMVVM_1ra.Models;
-using AppMVVM_1ra.Repositories;
+﻿using System;
+using System.Collections.ObjectModel;
+using System.IO;
+using System.Text;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using IntelliJ.Lang.Annotations;
-using System.Collections.ObjectModel;
-using System.Linq;
-using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+using Microsoft.Maui.ApplicationModel;
+using AppMVVM_1ra.Models;
+using AppMVVM_1ra.Repositories;
 
 namespace AppMVVM_1ra.ViewModels
 {
     public partial class CartViewModel : ObservableObject
     {
         private readonly ICartRepository _cartRepository;
-        private readonly IProductRepository _productRepository;
 
         [ObservableProperty]
         private bool isBusy;
 
-        // Estado para controlar cuándo mostrar el diseño de "Carrito Vacío"
         [ObservableProperty]
-        private bool isEmpty = true;
+        private decimal subTotal;
 
-        // El gran total a pagar
         [ObservableProperty]
-        private decimal totalAmount;
+        private decimal itbis;
+
+        [ObservableProperty]
+        private decimal shippingCost = 5.00m;
+
+        [ObservableProperty]
+        private decimal grandTotal;
 
         public ObservableCollection<CartItem> CartItems { get; } = new();
 
-        // Inyectamos ambos repositorios
-        public CartViewModel(ICartRepository cartRepository, IProductRepository productRepository)
+        public CartViewModel(ICartRepository cartRepository)
         {
             _cartRepository = cartRepository;
-            _productRepository = productRepository;
         }
 
         [RelayCommand]
         public async Task LoadCartAsync()
         {
             if (IsBusy) return;
-
             try
             {
                 IsBusy = true;
-
-                // 1. Obtenemos lo que hay en SQLite (Ids y Cantidades)
                 var items = await _cartRepository.GetCartItemsAsync();
 
                 CartItems.Clear();
+                decimal tempSubTotal = 0;
 
                 foreach (var item in items)
                 {
-                    // 2. Hidratamos el modelo: Buscamos el detalle del producto en la API 
-                    // para tener el Título y la Imagen que no guardamos en SQLite
-                    var productDetail = await _productRepository.GetProductByIdAsync(item.ProductId);
-
-                    // Solo lo agregamos si el producto aún existe en el catálogo
-                    if (productDetail != null)
-                    {
-                        item.ProductInfo = productDetail;
-                        CartItems.Add(item);
-                    }
+                    CartItems.Add(item);
+                    tempSubTotal += (item.PriceAtTimeOfAdding * item.Quantity);
                 }
 
-                RecalculateState();
+                SubTotal = tempSubTotal;
+                Itbis = SubTotal * 0.18m;
+                GrandTotal = SubTotal + Itbis + ShippingCost;
             }
             finally
             {
@@ -71,36 +67,99 @@ namespace AppMVVM_1ra.ViewModels
         }
 
         [RelayCommand]
-        public async Task RemoveItemAsync(CartItem item)
+        public async Task RemoveFromCartAsync(CartItem item)
         {
             if (item == null) return;
-
-            // Eliminamos de la base de datos
             await _cartRepository.RemoveCartItemAsync(item.ProductId);
-
-            // Eliminamos de la lista en memoria (actualiza la UI al instante)
-            CartItems.Remove(item);
-
-            RecalculateState();
+            await LoadCartAsync();
         }
 
         [RelayCommand]
-        public async Task ClearCartAsync()
+        public async Task ProcessPaymentAsync()
         {
-            await _cartRepository.ClearCartAsync();
-            CartItems.Clear();
+            if (CartItems.Count == 0)
+            {
+                await Shell.Current.DisplayAlert("Error", "El carrito está vacío.", "OK");
+                return;
+            }
 
-            RecalculateState();
+            IsBusy = true;
+
+            try
+            {
+                string fileName = $"Factura_{DateTime.Now:yyyyMMdd_HHmmss}.html";
+                string filePath = Path.Combine(FileSystem.CacheDirectory, fileName);
+
+                CreateInvoiceHtml(filePath);
+
+                foreach (var item in CartItems)
+                {
+                    await _cartRepository.RemoveCartItemAsync(item.ProductId);
+                }
+
+                await LoadCartAsync();
+
+                await Shell.Current.DisplayAlert(
+                    "¡Pago Exitoso!",
+                    $"Tu pago por {GrandTotal:C} ha sido procesado.\n\nAbriendo factura...",
+                    "OK");
+
+                await Launcher.Default.OpenAsync(new OpenFileRequest("Factura", new ReadOnlyFile(filePath)));
+            }
+            catch (Exception ex)
+            {
+                await Shell.Current.DisplayAlert("Error", ex.Message, "OK");
+            }
+            finally
+            {
+                IsBusy = false;
+            }
         }
 
-        // Método centralizado para recalcular totales y estados
-        private void RecalculateState()
+        private void CreateInvoiceHtml(string filePath)
         {
-            // LINQ hace que sumar los subtotales sea una sola línea de código
-            TotalAmount = CartItems.Sum(x => x.Subtotal);
+            StringBuilder html = new StringBuilder();
+            html.AppendLine("<!DOCTYPE html>");
+            html.AppendLine("<html><head><meta charset='UTF-8'><style>");
+            html.AppendLine("body { font-family: 'Segoe UI', Tahoma, sans-serif; padding: 20px; color: #333; }");
+            html.AppendLine(".container { max-width: 600px; margin: auto; border: 1px solid #ddd; padding: 30px; border-radius: 10px; }");
+            html.AppendLine("h1 { text-align: center; color: #0056D2; }");
+            html.AppendLine("table { width: 100%; border-collapse: collapse; margin-top: 20px; }");
+            html.AppendLine("th, td { border-bottom: 1px solid #ddd; padding: 12px; text-align: left; }");
+            html.AppendLine(".totals { text-align: right; margin-top: 20px; font-size: 16px; }");
+            html.AppendLine(".grand-total { font-size: 22px; font-weight: bold; color: #0056D2; }");
+            html.AppendLine("</style></head><body>");
 
-            // Si la cuenta es cero, IsEmpty es true
-            IsEmpty = CartItems.Count == 0;
+            html.AppendLine("<div class='container'>");
+            html.AppendLine("<h1>FACTURA DE COMPRA</h1>");
+            html.AppendLine($"<p><strong>Fecha:</strong> {DateTime.Now:dd/MM/yyyy HH:mm:ss}</p>");
+            html.AppendLine("<p><strong>Cliente:</strong> Junior Durán de la Rosa</p>");
+
+            html.AppendLine("<table>");
+            html.AppendLine("<tr><th>Producto (ID)</th><th>Cant.</th><th>Precio</th><th>Total</th></tr>");
+
+            foreach (var item in CartItems)
+            {
+                html.AppendLine("<tr>");
+                html.AppendLine($"<td>{item.ProductId}</td>");
+                html.AppendLine($"<td>{item.Quantity}</td>");
+                html.AppendLine($"<td>{item.PriceAtTimeOfAdding:C}</td>");
+                html.AppendLine($"<td>{(item.PriceAtTimeOfAdding * item.Quantity):C}</td>");
+                html.AppendLine("</tr>");
+            }
+
+            html.AppendLine("</table>");
+
+            html.AppendLine("<div class='totals'>");
+            html.AppendLine($"<p>Subtotal: {SubTotal:C}</p>");
+            html.AppendLine($"<p>ITBIS (18%): {Itbis:C}</p>");
+            html.AppendLine($"<p>Envío: {ShippingCost:C}</p>");
+            html.AppendLine($"<p class='grand-total'>TOTAL A PAGAR: {GrandTotal:C}</p>");
+            html.AppendLine("</div>");
+
+            html.AppendLine("</div></body></html>");
+
+            File.WriteAllText(filePath, html.ToString());
         }
     }
 }

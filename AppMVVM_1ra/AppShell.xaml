@@ -1,27 +1,17 @@
- <?xml version="1.0" encoding="UTF-8" ?>
+<?xml version="1.0" encoding="UTF-8" ?>
 <Shell
-    x:Class="CatalogoApp.AppShell"
+    x:Class="AppMVVM_1ra.AppShell"
     xmlns="http://schemas.microsoft.com/dotnet/2021/maui"
     xmlns:x="http://schemas.microsoft.com/winfx/2009/xaml"
-    xmlns:views="clr-namespace:CatalogoApp.Views"
-    Shell.FlyoutBehavior="Disabled"></Shell>
+    xmlns:views="clr-namespace:AppMVVM_1ra.Views"
+    Shell.FlyoutBehavior="Disabled">
 
     <TabBar>
-        
         <Tab Title="Catálogo">
-            <ShellContent
-                Title="Catálogo"
-                ContentTemplate="{DataTemplate views:CatalogPage}"
-                Route="CatalogPage" />
+            <ShellContent Title="Catálogo" ContentTemplate="{DataTemplate views:CatalogPage}" Route="CatalogPage" />
         </Tab>
-
         <Tab Title="Carrito">
-            <ShellContent
-                Title="Mi Carrito"
-                ContentTemplate="{DataTemplate views:CartPage}"
-                Route="CartPage" />
+            <ShellContent Title="Mi Carrito" ContentTemplate="{DataTemplate views:CartPage}" Route="CartPage" />
         </Tab>
-        
     </TabBar>
-
 </Shell>

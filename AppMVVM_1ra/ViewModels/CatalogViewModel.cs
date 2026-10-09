@@ -1,40 +1,37 @@
-﻿using AppMVVM_1ra.Models;
-using AppMVVM_1ra.Repositories;
+﻿using System.Collections.ObjectModel;
+using System.Threading.Tasks;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
-using IntelliJ.Lang.Annotations;
-using System.Collections.ObjectModel;
-using System.Threading.Tasks;
+using Microsoft.Maui.Controls;
+using CommunityToolkit.Maui.Alerts;
+using CommunityToolkit.Maui.Core;
+using AppMVVM_1ra.Models;
+using AppMVVM_1ra.Repositories;
 
 namespace AppMVVM_1ra.ViewModels
 {
-    // Heredar de ObservableObject es lo que hace la magia de notificar a la UI
     public partial class CatalogViewModel : ObservableObject
     {
         private readonly IProductRepository _repository;
+        private readonly ICartRepository _cartRepository;
 
-        // El generador de código creará automáticamente una propiedad pública 'IsBusy'
         [ObservableProperty]
         private bool isBusy;
 
-        // Propiedad para mostrar mensajes de error amigables al usuario
         [ObservableProperty]
         private string errorMessage = string.Empty;
 
-        // ObservableCollection notifica a la UI automáticamente cuando se añaden o quitan elementos
         public ObservableCollection<Product> Products { get; } = new();
 
-        // Inyección de dependencias: el ViewModel pide el repositorio, no lo crea él mismo
-        public CatalogViewModel(IProductRepository repository)
+        public CatalogViewModel(IProductRepository repository, ICartRepository cartRepository)
         {
             _repository = repository;
+            _cartRepository = cartRepository;
         }
 
-        // RelayCommand convierte este método en un comando que un botón puede ejecutar directamente
         [RelayCommand]
         public async Task LoadProductsAsync()
         {
-            // Evita ejecuciones duplicadas si el usuario presiona el botón varias veces rápido
             if (IsBusy) return;
 
             try
@@ -42,19 +39,15 @@ namespace AppMVVM_1ra.ViewModels
                 IsBusy = true;
                 ErrorMessage = string.Empty;
 
-                // Llamamos a la API a través del repositorio
                 var products = await _repository.GetProductsAsync();
 
-                // Limpiamos la lista antes de llenarla de nuevo
-                if (Products.Count != 0)
-                    Products.Clear();
+                Products.Clear();
 
                 foreach (var product in products)
                 {
                     Products.Add(product);
                 }
 
-                // Manejo de estado vacío si la API falló y el repositorio devolvió una lista vacía
                 if (Products.Count == 0)
                 {
                     ErrorMessage = "No pudimos cargar el catálogo. Verifica tu conexión.";
@@ -62,9 +55,42 @@ namespace AppMVVM_1ra.ViewModels
             }
             finally
             {
-                // El bloque finally asegura que IsBusy siempre se apague, incluso si hay un crash interno
                 IsBusy = false;
             }
+        }
+
+        [RelayCommand]
+        public async Task AddToCartAsync(Product product)
+        {
+            if (product == null) return;
+
+            var cartItem = new CartItem
+            {
+                ProductId = product.Id,
+                Quantity = 1,
+                PriceAtTimeOfAdding = product.Price
+            };
+
+            // 1. Guardamos en la base de datos (Esto funciona impecable)
+            await _cartRepository.AddOrUpdateCartItemAsync(cartItem);
+
+            // 2. Intentamos mostrar el mensaje silencioso
+            try
+            {
+                var toast = Toast.Make($"🛒 {product.Title} añadido", ToastDuration.Short, 14);
+                await toast.Show();
+            }
+            catch (Exception)
+            {
+                // Si Windows bloquea la notificación nativa en modo depuración, 
+                // atrapamos el error para que la aplicación no colapse.
+                // El producto ya está en el carrito, así que el usuario puede seguir navegando.
+            }
+        }
+        [RelayCommand]
+        public async Task GoToCartAsync()
+        {
+            await Shell.Current.GoToAsync("//CartPage");
         }
     }
 }

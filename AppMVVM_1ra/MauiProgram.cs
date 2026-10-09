@@ -2,10 +2,11 @@
 using AppMVVM_1ra.Repositories;
 using AppMVVM_1ra.ViewModels;
 using AppMVVM_1ra.Views;
-using CommunityToolkit.Maui; // Necesario para el toolkit (convertidores de UI)
+using CommunityToolkit.Maui;
 using Microsoft.Extensions.Logging;
 using Microsoft.Maui.Controls.Hosting;
 using Microsoft.Maui.Hosting;
+using Microsoft.Extensions.DependencyInjection;
 
 namespace AppMVVM_1ra
 {
@@ -16,13 +17,12 @@ namespace AppMVVM_1ra
             var builder = MauiApp.CreateBuilder();
             builder
                 .UseMauiApp<App>()
-                .UseMauiCommunityToolkit() // Inicializa el Toolkit
+                .UseMauiCommunityToolkit()
                 .ConfigureFonts(fonts =>
                 {
                     fonts.AddFont("OpenSans-Regular.ttf", "OpenSansRegular");
                     fonts.AddFont("OpenSans-Semibold.ttf", "OpenSansSemibold");
                 });
-
 #if DEBUG
             builder.Logging.AddDebug();
 #endif
@@ -30,30 +30,26 @@ namespace AppMVVM_1ra
             // ==========================================
             // 1. REGISTRO DE SERVICIOS CORE Y REPOSITORIOS
             // ==========================================
-            // AddHttpClient configura HttpClient de forma segura, evitando el agotamiento de sockets
-            builder.Services.AddHttpClient<IProductRepository, ProductRepository>();
-            // AddSingleton asegura que haya una única instancia del repositorio en toda la app
-            builder.Services.AddSingleton<IProductRepository, ProductRepository>();
-
-            // NUEVO: Repositorio del Carrito (Singleton para mantener la conexión SQLite viva)
+            builder.Services.AddSingleton<IProductRepository>(sp => new ProductRepository(new System.Net.Http.HttpClient()));
             builder.Services.AddSingleton<ICartRepository, CartRepository>();
 
             // ==========================================
             // 2. REGISTRO DE VIEWMODELS
             // ==========================================
-            // AddTransient crea una nueva instancia cada vez que se solicita
             builder.Services.AddTransient<CatalogViewModel>();
-
-            // NUEVO: ViewModel del Carrito
             builder.Services.AddTransient<CartViewModel>();
+
+            // Nueva línea agregada para el cerebro de los detalles
+            builder.Services.AddTransient<ProductDetailViewModel>();
 
             // ==========================================
             // 3. REGISTRO DE VISTAS (Páginas)
             // ==========================================
             builder.Services.AddTransient<CatalogPage>();
-
-            // NUEVO: Vista del Carrito
             builder.Services.AddTransient<CartPage>();
+
+            // Nueva línea agregada para la vista de los detalles
+            builder.Services.AddTransient<ProductDetailPage>();
 
             return builder.Build();
         }
